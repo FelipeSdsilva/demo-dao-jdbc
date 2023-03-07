@@ -5,11 +5,25 @@ import model.exceptions.DbException;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.Properties;
 
 public class DB {
-    private Connection conn = null;
+    private static Connection conn = null;
 
+    public static Connection getConnection() {
+        if (conn == null) {
+            try {
+                Properties props = loadProperties();
+                String url = props.getProperty("dburl");
+                conn = DriverManager.getConnection(url, props);
+            } catch (SQLException e) {
+                throw new DbException(e.getMessage());
+            }
+        }
+        return conn;
+    }
 
     private static Properties loadProperties() {
         try (FileInputStream fl = new FileInputStream("db.properties")) {
