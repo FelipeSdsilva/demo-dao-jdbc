@@ -9,6 +9,8 @@ import java.util.Properties;
 
 public class DB {
     private static Connection conn = null;
+    private Statement st = null;
+    private ResultSet rt = null;
 
     public static Connection getConnection() {
         if (conn == null) {
@@ -32,6 +34,7 @@ public class DB {
             }
         }
     }
+
     public static void closeStatement(Statement st) {
         if (st != null) {
             try {
@@ -51,6 +54,7 @@ public class DB {
             }
         }
     }
+
     private static Properties loadProperties() {
         try (FileInputStream fl = new FileInputStream("db.properties")) {
             Properties props = new Properties();
