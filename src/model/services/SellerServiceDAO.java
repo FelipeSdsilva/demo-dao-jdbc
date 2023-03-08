@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class SellerServiceDAO implements SellerDAO {
@@ -64,7 +65,32 @@ public class SellerServiceDAO implements SellerDAO {
 
     @Override
     public List<Seller> findAll() {
-        return null;
+
+        PreparedStatement pst = null;
+        ResultSet rt = null;
+        try {
+            pst = conn.prepareStatement("SELECT DISTINCT seller.*, department.name as departmentName " +
+                    "FROM seller, department " +
+                    "WHERE seller.departmentid = department.id");
+            rt = pst.executeQuery();
+            List<Seller> sellers = new ArrayList<>();
+
+            while (rt.next()) {
+                Department department = instantiateDepartment(rt);
+                Seller seller = instantiateSeller(rt, department);
+                sellers.add(seller);
+            }
+
+            if (sellers.size() > 0) {
+                return sellers.stream().toList();
+            }
+            return null;
+        } catch (SQLException e) {
+            throw new DbException(e.getMessage());
+        } finally {
+            DB.closeStatement(pst);
+            DB.closeResultSet(rt);
+        }
     }
 
     private Seller instantiateSeller(ResultSet rt, Department department) throws SQLException {
