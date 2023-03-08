@@ -48,8 +48,8 @@ public class Department implements Serializable {
     @Override
     public String toString() {
         return "Department{" +
-                "\nid: " + id +
-                ",\nname: '" + name + '\'' +
+                "id: " + id +
+                ",name: '" + name + '\'' +
                 '}';
     }
 }
