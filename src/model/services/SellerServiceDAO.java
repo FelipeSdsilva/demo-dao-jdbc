@@ -4,14 +4,14 @@ import model.db.DB;
 import model.entities.Department;
 import model.entities.Seller;
 import model.exceptions.DbException;
+import model.exceptions.DbIntegrityException;
 import model.repositories.SellerDAO;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class SellerServiceDAO implements SellerDAO {
 
@@ -23,6 +23,37 @@ public class SellerServiceDAO implements SellerDAO {
 
     @Override
     public void insert(Seller seller) {
+        PreparedStatement pst = null;
+
+        try {
+            pst = conn.prepareStatement("INSERT INTO seller " +
+                    "(name, email, birthdate, basesalary, departmentid ) " +
+                    "VALUES ( ?, ?, ?, ?, ? ) ", Statement.RETURN_GENERATED_KEYS);
+            pst.setString(1, seller.getName());
+            pst.setString(2, seller.getEmail());
+            pst.setTimestamp(3, Timestamp.valueOf(seller.getBirthDate()));
+            pst.setDouble(4, seller.getBaseSalary());
+            pst.setInt(5, seller.getDepartment().getId());
+
+            int rowsAffected = pst.executeUpdate();
+            if (rowsAffected > 0) {
+                ResultSet rt = pst.getGeneratedKeys();
+                if (rt.next()) {
+                    int id = rt.getInt(1);
+                    seller.setId(id);
+                }
+                DB.closeResultSet(rt);
+
+                System.out.println("Inserted successful!");
+            } else {
+                throw new DbException("Unexpected error! Not rows affected!");
+            }
+
+        } catch (SQLException e) {
+            throw new DbException(e.getMessage());
+        } finally {
+            DB.closeStatement(pst);
+        }
 
     }
 
@@ -33,8 +64,20 @@ public class SellerServiceDAO implements SellerDAO {
 
     @Override
     public void deleteById(int id) {
+        PreparedStatement pst = null;
+        try {
+            pst = conn.prepareStatement("DELETE FROM seller " +
+                    "WHERE seller.id = ? ");
+            pst.setInt(1, id);
 
+            int rowsAffected = pst.executeUpdate();
+            if (rowsAffected > 0) System.out.println("Deleted successful!");
 
+        } catch (SQLException e) {
+            throw new DbIntegrityException(e.getMessage());
+        } finally {
+            DB.closeStatement(pst);
+        }
     }
 
     @Override
@@ -70,14 +113,25 @@ public class SellerServiceDAO implements SellerDAO {
         ResultSet rt = null;
         try {
             pst = conn.prepareStatement("SELECT DISTINCT seller.*, department.name as departmentName " +
-                    "FROM seller, department " +
-                    "WHERE seller.departmentid = department.id");
+                    "FROM seller INNER JOIN department " +
+                    "ON seller.departmentid = department.id " +
+                    "ORDER BY id");
+
             rt = pst.executeQuery();
+
             List<Seller> sellers = new ArrayList<>();
+            Map<Integer, Department> map = new HashMap<>();
 
             while (rt.next()) {
-                Department department = instantiateDepartment(rt);
-                Seller seller = instantiateSeller(rt, department);
+
+                Department dep = map.get(rt.getInt("departmentid"));
+
+                if (dep == null) {
+                    dep = instantiateDepartment(rt);
+                    map.put(rt.getInt("departmentid"), dep);
+                }
+
+                Seller seller = instantiateSeller(rt, dep);
                 sellers.add(seller);
             }
 
@@ -91,6 +145,46 @@ public class SellerServiceDAO implements SellerDAO {
             DB.closeStatement(pst);
             DB.closeResultSet(rt);
         }
+    }
+
+    @Override
+    public List<Seller> findByDepartment(Department department) {
+        PreparedStatement pst = null;
+        ResultSet rt = null;
+
+        try {
+            pst = conn.prepareStatement("SELECT seller.*, department.name as departmentName " +
+                    "FROM seller INNER JOIN department " +
+                    "ON seller.departmentid = department.id " +
+                    "WHERE seller.departmentid = ? " +
+                    "ORDER BY id");
+
+            pst.setInt(1, department.getId());
+            rt = pst.executeQuery();
+
+            List<Seller> sellers = new ArrayList<>();
+            Map<Integer, Department> map = new HashMap<>();
+
+            while (rt.next()) {
+
+                Department dep = map.get(rt.getInt("departmentid"));
+
+                if (dep == null) {
+                    dep = instantiateDepartment(rt);
+                    map.put(rt.getInt("departmentid"), dep);
+                }
+
+                Seller seller = instantiateSeller(rt, dep);
+                sellers.add(seller);
+            }
+            return sellers;
+
+        } catch (SQLException e) {
+
+        }
+
+
+        return null;
     }
 
     private Seller instantiateSeller(ResultSet rt, Department department) throws SQLException {
@@ -109,5 +203,11 @@ public class SellerServiceDAO implements SellerDAO {
         department.setId(rt.getInt("departmentid"));
         department.setName(rt.getString("departmentName"));
         return department;
+    }
+
+    private Seller updateOrInsert(PreparedStatement pst) throws SQLException {
+        Seller seller = new Seller();
+
+        return seller;
     }
 }

@@ -1,5 +1,6 @@
 package model.repositories;
 
+import model.entities.Department;
 import model.entities.Seller;
 
 import java.util.List;
@@ -14,4 +15,6 @@ public interface SellerDAO {
     public Seller findById(int id);
 
     public List<Seller> findAll();
+
+    public List<Seller> findByDepartment(Department department);
 }
