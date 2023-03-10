@@ -59,7 +59,30 @@ public class SellerServiceDAO implements SellerDAO {
 
     @Override
     public void update(Seller seller) {
+        PreparedStatement pst = null;
+        try {
 
+            pst = conn.prepareStatement("UPDATE seller " +
+                    "SET name= ?, email= ?, birthdate= ? , basesalary= ?, departmentid= ? " +
+                    "WHERE id = ? ");
+
+            pst.setString(1, seller.getName());
+            pst.setString(2, seller.getEmail());
+            pst.setTimestamp(3, Timestamp.valueOf(seller.getBirthDate()));
+            pst.setDouble(4, seller.getBaseSalary());
+            pst.setInt(5, seller.getDepartment().getId());
+            pst.setInt(6, seller.getId());
+
+            pst.executeUpdate();
+
+            int rowsAffected = pst.executeUpdate();
+            if (rowsAffected > 0) System.out.println("Update successful!");
+
+        } catch (SQLException e) {
+            throw new DbException(e.getMessage());
+        } finally {
+            DB.closeStatement(pst);
+        }
     }
 
     @Override

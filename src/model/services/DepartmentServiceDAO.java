@@ -41,16 +41,24 @@ public class DepartmentServiceDAO implements DepartmentDAO {
     @Override
     public void update(Department department) {
         PreparedStatement pst = null;
-        ResultSet rt = null;
+
         try {
-            pst = conn.prepareStatement("INSERT INTO department (name) " +
-                    "VALUES (?) ");
+            pst = conn.prepareStatement("UPDATE department " +
+                    "SET name= ? " +
+                    "WHERE id = ? ");
+
+            pst.setString(1, department.getName());
+            pst.setInt(2, department.getId());
+
+            pst.executeUpdate();
+
+            int rowsAffected = pst.executeUpdate();
+            if (rowsAffected > 0) System.out.println("Update successful!");
 
         } catch (SQLException e) {
             throw new DbException(e.getMessage());
         } finally {
             DB.closeStatement(pst);
-            DB.closeResultSet(rt);
         }
     }
 
